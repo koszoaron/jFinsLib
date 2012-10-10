@@ -1,0 +1,5 @@
+jFinsLib
+
+A java library for communicating with Omron PLCs using the FINS 
+protocol.
+
