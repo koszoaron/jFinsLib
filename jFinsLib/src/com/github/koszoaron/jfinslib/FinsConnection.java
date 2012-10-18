@@ -1,14 +1,28 @@
 package com.github.koszoaron.jfinslib;
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 
 import com.github.koszoaron.jfinslib.FinsMessage.MessageType;
+
+/*
+ * 
+OutStream: 46 49 4e 53 00 00 00 0c 00 00 00 00 00 00 00 00 00 00 00 00 (length: 20)
+InStream:  46 49 4e 53 00 00 00 10 00 00 00 01 00 00 00 00 00 00 00 ffffffef 00 00 00 01 00 00 00 00 00 00 00 00 (length: 24)
+OutStream: 46 49 4e 53 00 00 00 1c 00 00 00 02 00 00 00 00 80 00 02 00 01 00 00 ef 00 01 01 02 b2 00 01 00 00 01 00 04 (length: 36)
+InStream:  46 49 4e 53 00 00 00 16 00 00 00 02 00 00 00 00 ffffffc0 00 02 00 ffffffef 00 00 01 00 01 01 02 00 00 00 00 (length: 30)
+OutStream: 46 49 4e 53 00 00 00 1a 00 00 00 02 00 00 00 00 80 00 02 00 01 00 00 ef 00 01 01 01 b2 00 01 00 00 01 (length: 34)
+InStream:  46 49 4e 53 00 00 00 18 00 00 00 02 00 00 00 00 ffffffc0 00 02 00 ffffffef 00 00 01 00 01 01 01 00 00 00 04 (length: 32)
+ * 
+ * */
 
 public class FinsConnection {
     public static final int HEX_REGISTER = 0;
@@ -49,27 +63,91 @@ public class FinsConnection {
             FinsMessage connectMessage = new FinsMessage();
             
             System.out.println("OutStream: " + connectMessage.toString());
-            streamToServer.write(connectMessage.getMessageBytes());
+            streamToServer.write(connectMessage.getMessageBytes());            
             
+            byte[] inputBytes = new byte[32];
+            int bytesRead = -1;
             
-            System.out.print("Reading: ");
-            while (streamFromServer.available() > 0) {
-                System.out.print(streamFromServer.read());
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
-            System.out.println();
             
-            FinsMessage writeMessage = new FinsMessage(0xb2, 0x01, new int[] {0x08});
+            if (streamFromServer.available() > 0) {
+                bytesRead = streamFromServer.read(inputBytes);
+            }
+            
+            StringBuilder response = new StringBuilder();
+            if (bytesRead > 0) {
+                for (int i : inputBytes) {
+                    response.append(String.format("%02x", i) + " ");
+                }
+                System.out.println("InStream:  " + response + "(length: " + bytesRead + ")");
+            }
+            
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            
+            FinsMessage writeMessage = new FinsMessage(0xb2, 0x01, new int[] {0x4});
             System.out.println("OutStream: " + writeMessage.toString());
-            streamToServer.write(writeMessage.getMessageBytes());
+            streamToServer.write(writeMessage.getMessageBytes());            
             
-            System.out.print("Reading: ");
-            while (streamFromServer.available() > 0) {
-                System.out.print(streamFromServer.read());
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
-            System.out.println();
             
-            streamToServer.flush();
+            if (streamFromServer.available() > 0) {
+                bytesRead = streamFromServer.read(inputBytes);
+            }
             
+            response = new StringBuilder();
+            if (bytesRead > 0) {
+                for (int i : inputBytes) {
+                    response.append(String.format("%02x", i) + " ");
+                }
+                System.out.println("InStream:  " + response + "(length: " + bytesRead + ")");
+            }
+            
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            
+            FinsMessage readMessage = new FinsMessage(0xb2, 0x01, 1);
+            System.out.println("OutStream: " + readMessage.toString());
+            streamToServer.write(readMessage.getMessageBytes());
+            
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            
+            if (streamFromServer.available() > 0) {
+                bytesRead = streamFromServer.read(inputBytes);
+            }
+            
+            response = new StringBuilder();
+            if (bytesRead > 0) {
+                for (int i : inputBytes) {
+                    response.append(String.format("%02x", i) + " ");
+                }
+                System.out.println("InStream:  " + response + "(length: " + bytesRead + ")");
+            }
+//           
+//            
             disconnect();
         }
     }
