@@ -1,9 +1,8 @@
 package com.github.koszoaron.jfinslib;
 
-import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -21,8 +20,8 @@ public class FinsConnection {
     private boolean connected = false;
     private int timeout = 30;
     
-    private PrintWriter streamToServer;
-    private BufferedReader streamFromServer;
+    private DataOutputStream streamToServer;
+    private InputStream streamFromServer;
     
     private FinsConnection(String address, int port) {
         this.serverAddress = address;
@@ -43,10 +42,35 @@ public class FinsConnection {
             serverConnection = new Socket();
             serverConnection.connect(address, timeout);
             
-            streamToServer = new PrintWriter(serverConnection.getOutputStream());
-            streamFromServer = new BufferedReader(new InputStreamReader(serverConnection.getInputStream()));
+            connected = true;
             
-            //TODO FINS connect, return bool
+            streamToServer = new DataOutputStream(serverConnection.getOutputStream());
+            streamFromServer = serverConnection.getInputStream();
+            FinsMessage connectMessage = new FinsMessage();
+            
+            System.out.println("OutStream: " + connectMessage.toString());
+            streamToServer.write(connectMessage.getMessageBytes());
+            
+            
+            System.out.print("Reading: ");
+            while (streamFromServer.available() > 0) {
+                System.out.print(streamFromServer.read());
+            }
+            System.out.println();
+            
+            FinsMessage writeMessage = new FinsMessage(0xb2, 0x01, new int[] {0x08});
+            System.out.println("OutStream: " + writeMessage.toString());
+            streamToServer.write(writeMessage.getMessageBytes());
+            
+            System.out.print("Reading: ");
+            while (streamFromServer.available() > 0) {
+                System.out.print(streamFromServer.read());
+            }
+            System.out.println();
+            
+            streamToServer.flush();
+            
+            disconnect();
         }
     }
     

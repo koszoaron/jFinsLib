@@ -1,5 +1,8 @@
 package com.github.koszoaron.jfinslib;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+
 /**
  * Main class for testing the implementation
  */
@@ -9,14 +12,16 @@ public class Main {
      * @param args
      */
     public static void main(String[] args) {
-        FinsMessage connectionMessage = new FinsMessage();
-        System.out.println("Connect: " + connectionMessage.toString());
-        
-        FinsMessage writeMsg = new FinsMessage(0xb2, 0x03, new int[] {0x20, 0x40});
-        System.out.println("Write:   " + writeMsg);
-        
-        FinsMessage readMsg = new FinsMessage(0xb2, 0x11, 5);
-        System.out.println("Read:    " + readMsg);
+        FinsConnection connection = FinsConnection.newInstance("192.168.1.103", 9600);
+        try {
+            connection.connect();
+        } catch (SocketTimeoutException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
 }

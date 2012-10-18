@@ -138,6 +138,15 @@ public class FinsMessage {
         return message;
     }
     
+    public byte[] getMessageBytes() {
+        byte res[] = new byte[message.length];
+        for (int i = 0; i < message.length; i++) {
+            res[i] = (byte) message[i];
+        }
+        
+        return res;
+    }
+    
     /* (non-Javadoc)
      * @see java.lang.Object#toString()
      */
