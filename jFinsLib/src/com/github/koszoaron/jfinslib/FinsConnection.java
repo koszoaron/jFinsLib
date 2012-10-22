@@ -94,7 +94,7 @@ public class FinsConnection {
                 e.printStackTrace();
             }
             
-            FinsMessage writeMessage = new FinsMessage(0xb2, 0x01, new int[] {0x4});
+            FinsMessage writeMessage = new FinsMessage(0xb2, 0x01, new int[] {0x1b});
             System.out.println("OutStream: " + writeMessage.toString());
             streamToServer.write(writeMessage.getMessageBytes());            
             
