@@ -6,19 +6,12 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.net.SocketTimeoutException;
 
-/*
+/**
+ * A class representing a connection to a PLC device using the FINS protocol
  * 
-OutStream: 46 49 4e 53 00 00 00 0c 00 00 00 00 00 00 00 00 00 00 00 00 (length: 20)
-InStream:  46 49 4e 53 00 00 00 10 00 00 00 01 00 00 00 00 00 00 00 ffffffef 00 00 00 01 00 00 00 00 00 00 00 00 (length: 24)
-OutStream: 46 49 4e 53 00 00 00 1c 00 00 00 02 00 00 00 00 80 00 02 00 01 00 00 ef 00 01 01 02 b2 00 01 00 00 01 00 04 (length: 36)
-InStream:  46 49 4e 53 00 00 00 16 00 00 00 02 00 00 00 00 ffffffc0 00 02 00 ffffffef 00 00 01 00 01 01 02 00 00 00 00 (length: 30)
-OutStream: 46 49 4e 53 00 00 00 1a 00 00 00 02 00 00 00 00 80 00 02 00 01 00 00 ef 00 01 01 01 b2 00 01 00 00 01 (length: 34)
-InStream:  46 49 4e 53 00 00 00 18 00 00 00 02 00 00 00 00 ffffffc0 00 02 00 ffffffef 00 00 01 00 01 01 01 00 00 00 04 (length: 32)
- * 
- * */
-
+ * @author Aron Koszo <koszoaron@gmail.com>
+ */
 public class FinsConnection {
     public static final int HEX_REGISTER = 0;
     public static final int BCD_REGISTER = 1;  //TODO convert to enum
@@ -28,21 +21,54 @@ public class FinsConnection {
     private Socket serverConnection;
     private boolean connected = false;
     private int timeout = 30;
+    private boolean testing = false;
     
     private DataOutputStream streamToServer;
     private InputStream streamFromServer;
     
+    /**
+     * Creates a new FinsConnection object
+     * 
+     * @param address The IP address of the device
+     * @param port The port of the device
+     */
     private FinsConnection(String address, int port) {
         this.serverAddress = address;
         this.serverPort = port;
     }
     
+    /**
+     * Returns a new instance of a device connection.
+     * 
+     * @param address The IP address of the device
+     * @param port The TCP port of the device
+     * @return An instance of FinsConnection
+     */
     public static FinsConnection newInstance(String address, int port) {
         return new FinsConnection(address, port);
     }
     
+    /**
+     * @return True if the connection to the device is alive
+     */
     public boolean isConnected() {
         return connected;
+    }
+    
+    /**
+     * @return True if in testing mode..
+     */
+    public boolean isTesting() {
+        return testing;
+    }
+    
+    /**
+     * Enables or disables testing mode.
+     * 
+     * @param testing True to enable
+     */
+    public void setTesting(boolean testing) {
+        this.testing = testing;
     }
     
     /**
@@ -53,106 +79,65 @@ public class FinsConnection {
     public boolean connect() {
         boolean success = false;
         
+        if (testing) {
+            return true;
+        }
+        
         if (!connected) {
             SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
             serverConnection = new Socket();
-            serverConnection.connect(address, timeout);
             
-            connected = true;
+            //establish socket connection
+            try {
+                serverConnection.connect(address, timeout);
+                streamToServer = new DataOutputStream(serverConnection.getOutputStream());
+                streamFromServer = serverConnection.getInputStream();
+            } catch (IOException e) {
+                e.printStackTrace();
+                
+                return false;
+            }
             
-            streamToServer = new DataOutputStream(serverConnection.getOutputStream());
-            streamFromServer = serverConnection.getInputStream();
+            //send a connect message
             FinsMessage connectMessage = new FinsMessage();
+            try {
+                streamToServer.write(connectMessage.getMessageBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+                
+                return false;
+            }            
             
-            System.out.println("OutStream: " + connectMessage.toString());
-            streamToServer.write(connectMessage.getMessageBytes());            
+            //wait 1 sec
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                
+                return false;
+            }
             
+            //read the response
             byte[] inputBytes = new byte[32];
             int bytesRead = -1;
-            
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            
-            if (streamFromServer.available() > 0) {
-                bytesRead = streamFromServer.read(inputBytes);
-            }
-            
             StringBuilder response = new StringBuilder();
-            if (bytesRead > 0) {
-                for (int i : inputBytes) {
-                    response.append(String.format("%02x", i) + " ");
+            try {
+                if (streamFromServer.available() > 0) {
+                    bytesRead = streamFromServer.read(inputBytes);
                 }
-                System.out.println("InStream:  " + response + "(length: " + bytesRead + ")");
-            }
-            
-            
-            /*
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            
-            FinsMessage writeMessage = new FinsMessage(0xb2, 0x01, new int[] {0x1b});
-            System.out.println("OutStream: " + writeMessage.toString());
-            streamToServer.write(writeMessage.getMessageBytes());            
-            
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            
-            if (streamFromServer.available() > 0) {
-                bytesRead = streamFromServer.read(inputBytes);
-            }
-            
-            response = new StringBuilder();
-            if (bytesRead > 0) {
-                for (int i : inputBytes) {
-                    response.append(String.format("%02x", i) + " ");
+                if (bytesRead > 0) {
+                    for (int i : inputBytes) {
+                        response.append(String.format("%02x", i) + " ");
+                    }
                 }
-                System.out.println("InStream:  " + response + "(length: " + bytesRead + ")");
-            }
-            
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
+            } catch (IOException e) {
                 e.printStackTrace();
+                
+                return false;
             }
             
-            FinsMessage readMessage = new FinsMessage(0xb2, 0x01, 1);
-            System.out.println("OutStream: " + readMessage.toString());
-            streamToServer.write(readMessage.getMessageBytes());
-            
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            
-            if (streamFromServer.available() > 0) {
-                bytesRead = streamFromServer.read(inputBytes);
-            }
-            
-            response = new StringBuilder();
-            if (bytesRead > 0) {
-                for (int i : inputBytes) {
-                    response.append(String.format("%02x", i) + " ");
-                }
-                System.out.println("InStream:  " + response + "(length: " + bytesRead + ")");
-            }
-//           
-//            
-            disconnect();*/
+            connected = true;
+            success = true;
         }
         
         return success;
@@ -165,6 +150,10 @@ public class FinsConnection {
      */
     public boolean disconnect() {
         boolean success = false;
+        
+        if (testing) {
+            return true;
+        }
         
         if (connected) {
             if (!serverConnection.isClosed()) {
@@ -191,10 +180,44 @@ public class FinsConnection {
      * Sends a message to the connected device.
      * 
      * @param message The {@link FinsMessage} to send
-     * @return The response from the device (in an array of integers)
+     * @return The response from the device (in an array of integers) or {@code NULL}
      */
     public int[] sendFinsMessage(FinsMessage message) {
         int[] response = null;
+        
+        if (connected) {
+            //send the message
+            try {
+                streamToServer.write(message.getMessageBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            
+            //wait 1 sec
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            
+            //get the response
+            byte[] inputBytes = new byte[64];
+            int bytesRead = -1;
+            try {
+                if (streamFromServer.available() > 0) {
+                    bytesRead = streamFromServer.read(inputBytes);
+                }
+                if (bytesRead > 0) {
+                    response = new int[bytesRead];
+                    
+                    for (int i = 0; i < bytesRead; i++) {
+                        response[i] = inputBytes[i];
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         
         return response;
     }
@@ -202,13 +225,22 @@ public class FinsConnection {
     /**
      * Writes the values in the argument to the specified register of the connected device.
      * 
+     * @param memoryArea The register area designation byte
      * @param registerAddress The address of the register
-     * @param type The type of the register
      * @param values The values to write (in an array of integers)
      * @return True if the operation was successful
      */
-    public boolean writeRegister(int registerAddress, int type, int[] values) {
+    public boolean writeRegister(int memoryArea, int registerAddress, int[] values) {
         boolean success = false;
+        
+        if (testing) {
+            return true;
+        }
+        
+        int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, values));
+        if (response != null) {
+            success = true;
+        }
         
         return success;
     }
@@ -216,12 +248,24 @@ public class FinsConnection {
     /**
      * Reads the value of a single register of the connected device.
      * 
+     * @param memoryArea The register area designation byte
      * @param registerAddress The address of the register
-     * @param type The type of the register
      * @return The value stored in the register or {@code UNKNOWN_VALUE} if the operation was not successful
      */
-    public int readRegister(int registerAddress, int type) {
+    public int readRegister(int memoryArea, int registerAddress) {
         int res = Constants.UNKNOWN_VALUE;
+        
+        if (testing) {
+            return 42;
+        }
+        
+        int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, 1));
+        if (response != null) {
+            int upperByte = response[response.length-2];
+            int lowerByte = response[response.length-1];
+            
+            res = upperByte * 256 + lowerByte;
+        }
         
         return res;
     }
