@@ -1,17 +1,12 @@
 package com.github.koszoaron.jfinslib;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
-
-import com.github.koszoaron.jfinslib.FinsMessage.MessageType;
 
 /*
  * 
@@ -50,7 +45,14 @@ public class FinsConnection {
         return connected;
     }
     
-    public void connect() throws IOException, SocketTimeoutException {
+    /**
+     * Connects to a device.
+     * 
+     * @return True if the operation was successful
+     */
+    public boolean connect() {
+        boolean success = false;
+        
         if (!connected) {
             SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
             serverConnection = new Socket();
@@ -87,6 +89,8 @@ public class FinsConnection {
                 System.out.println("InStream:  " + response + "(length: " + bytesRead + ")");
             }
             
+            
+            /*
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -148,33 +152,77 @@ public class FinsConnection {
             }
 //           
 //            
-            disconnect();
+            disconnect();*/
         }
+        
+        return success;
     }
     
-    public void disconnect() throws IOException {
+    /**
+     * Disconnects from the connected device and closes all sockets.
+     * 
+     * @return True if the operation was successful
+     */
+    public boolean disconnect() {
+        boolean success = false;
+        
         if (connected) {
             if (!serverConnection.isClosed()) {
-                streamToServer.close();
-                streamFromServer.close();
-                serverConnection.close();
+                try {
+                    streamToServer.close();
+                    streamFromServer.close();
+                    serverConnection.close();
+                    
+                    success = true;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }                
                 
                 streamToServer = null;
                 streamFromServer = null;
                 serverConnection = null;
             }
         }
+        
+        return success;
     }
     
-    public void writeRegister(int registerAddress, int type) {
-        //TODO
+    /**
+     * Sends a message to the connected device.
+     * 
+     * @param message The {@link FinsMessage} to send
+     * @return The response from the device (in an array of integers)
+     */
+    public int[] sendFinsMessage(FinsMessage message) {
+        int[] response = null;
+        
+        return response;
     }
     
-    public void sendFinsMessage(MessageType type, int memoryArea, int register, int[] values) {
-        //TODO
+    /**
+     * Writes the values in the argument to the specified register of the connected device.
+     * 
+     * @param registerAddress The address of the register
+     * @param type The type of the register
+     * @param values The values to write (in an array of integers)
+     * @return True if the operation was successful
+     */
+    public boolean writeRegister(int registerAddress, int type, int[] values) {
+        boolean success = false;
+        
+        return success;
     }
     
-    public void sendFinsMessage(FinsMessage message) {
-        //TODO
+    /**
+     * Reads the value of a single register of the connected device.
+     * 
+     * @param registerAddress The address of the register
+     * @param type The type of the register
+     * @return The value stored in the register or {@code UNKNOWN_VALUE} if the operation was not successful
+     */
+    public int readRegister(int registerAddress, int type) {
+        int res = Constants.UNKNOWN_VALUE;
+        
+        return res;
     }
 }

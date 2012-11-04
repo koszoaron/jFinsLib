@@ -16,4 +16,6 @@ public final class Constants {
     public static final int DEFAULT_SA2 = 0x00;  //source unit address, 0x00 = local
     public static final int DEFAULT_SID = 0x01;  //source ID
     
+    public static final int UNKNOWN_VALUE = -1;
+    
 }
