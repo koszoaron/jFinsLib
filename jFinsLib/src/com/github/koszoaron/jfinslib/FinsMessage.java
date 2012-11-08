@@ -8,6 +8,16 @@ package com.github.koszoaron.jfinslib;
 public class FinsMessage {
     private int[] message = {};
     
+    /**
+     * Determines the type of the value (hexadecimal or BCD)
+     */
+    public static enum ValueType {
+        /** Store the values as hexadecimal numbers */
+        HEX,
+        /** Store the values as binary-coded decimals */
+        BCD
+    }
+    
     /** FINS header bytes */
     public static final int[] FINS_HEADER = {0x46, 0x49, 0x4e, 0x53};
     /** Placeholder for the bytes describing the length of the message */
@@ -63,7 +73,7 @@ public class FinsMessage {
      * @param length The number of bytes to be read from the register
      */
     public FinsMessage(int memoryArea, int registerAddress, int length) {
-        this(MessageType.READ_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, length, null);
+        this(MessageType.READ_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, length, null, null);
     }
     
     /**
@@ -72,9 +82,10 @@ public class FinsMessage {
      * @param memoryArea The memory area designation byte
      * @param registerAddress The address of the register to write to
      * @param values The values to write to the register
+     * @param valueType The type of values (hex or BCD, if null then hex)
      */
-    public FinsMessage(int memoryArea, int registerAddress, int[] values) {
-        this(MessageType.WRITE_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, 0, values);
+    public FinsMessage(int memoryArea, int registerAddress, int[] values, ValueType valueType) {
+        this(MessageType.WRITE_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, 0, values, valueType);
     }
     
     /**
@@ -93,8 +104,9 @@ public class FinsMessage {
      * @param registerAddress The address of the register which is to be accessed
      * @param length The number of bytes to read (nullable on a write command)
      * @param values The values to write (nullable on a read command)
+     * @param valueType The type of the values (hex or BCD, if null then hex, nullable on read) 
      */
-    public FinsMessage(MessageType type, int permissibleNumberOfGateways, int destinationNetworkAddress, int destinationNodeAddress, int destinationUnitAddress, int sourceNetworkAddress, int sourceNodeAddress, int sourceUnitAddress, int sourceId, int memoryArea, int registerAddress, int length, int[] values) {
+    public FinsMessage(MessageType type, int permissibleNumberOfGateways, int destinationNetworkAddress, int destinationNodeAddress, int destinationUnitAddress, int sourceNetworkAddress, int sourceNodeAddress, int sourceUnitAddress, int sourceId, int memoryArea, int registerAddress, int length, int[] values, ValueType valueType) {
         message = FINS_HEADER;
         
         append(FINS_LENGTH_PLACEHOLDER);
@@ -120,10 +132,16 @@ public class FinsMessage {
         } else if (type == MessageType.WRITE_MEMORY) {
             append(CMD_MEMORY_AREA_WRITE);
             append(memoryArea);
-            append(toWord(values.length));
-            append(RSV);
             append(toWord(registerAddress));
-            append(toWord(values));
+            append(RSV);
+            append(toWord(values.length));
+            
+            //TODO check if bcd and convert
+            if (valueType == null || valueType == ValueType.HEX) {
+                append(toWord(values));
+            } else {
+                append(toBcdWord(values));
+            }
         }
         
         updateMessageLength();
@@ -207,9 +225,9 @@ public class FinsMessage {
     }
     
     /**
-     * Converts a 'byte' to a 'word'.
+     * Converts a number to a word.
      * 
-     * @param hexNumber The 'byte' stored in an integer
+     * @param hexNumber The number to convert
      * @return A two element integer array where the first element represents the upper byte of the word and the second element represents the lower byte of the word
      */
     private int[] toWord(int hexNumber) {
@@ -220,9 +238,9 @@ public class FinsMessage {
     }
     
     /**
-     * Converts an array of 'bytes' to an array of 'words'.
+     * Converts an array of numbers to an array of words.
      * 
-     * @param hexNumber The array of 'bytes' stored in an array of integers
+     * @param hexNumberArray The array of numbers
      * @return An array of integers which contains pairs of integers. For each pair the first element represents the upper byte of the word and the second element represents the lower byte of the word
      */
     private int[] toWord(int[] hexNumberArray) {
@@ -232,6 +250,40 @@ public class FinsMessage {
             int[] word = toWord(hexNumberArray[j]);
             res[i] = word[0];
             res[i+1] = word[1];
+        }
+        
+        return res;
+    }
+    
+    /**
+     * Converts a (decimal) number to a BCD word.
+     * 
+     * @param decNumber A (decimal) number to convert
+     * @return A two element integer array where the first element stores the thousands and hundreds while the second element stores the tens and ones
+     */
+    private int[] toBcdWord(int decNumber) {
+        int upper = decNumber / 100;
+        int lower = decNumber % 100;
+        
+        return new int[] {
+                16 * (upper / 10) + upper % 10,
+                16 * (lower / 10) + lower % 10
+        };
+    }
+    
+    /**
+     * Converts an array of (decimal) numbers to an array of BCD words.
+     * 
+     * @param hexNumberArray The array of (decimal) numbers
+     * @return An array of integers which contains BCD words. For each word the first byte stores the thousands and hundreds while the second byte stores the tens and ones
+     */
+    private int[] toBcdWord(int[] decNumberArray) {
+        int[] res = new int[decNumberArray.length * 2];
+        
+        for (int i = 0, j = 0; i < res.length; i += 2, j++) {
+            int[] bcdWord = toBcdWord(decNumberArray[j]);
+            res[i] = bcdWord[0];
+            res[i+1] = bcdWord[1];
         }
         
         return res;

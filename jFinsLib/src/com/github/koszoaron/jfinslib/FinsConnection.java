@@ -7,6 +7,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 
+import com.github.koszoaron.jfinslib.FinsMessage.ValueType;
+
 /**
  * A class representing a connection to a PLC device using the FINS protocol
  * 
@@ -15,6 +17,8 @@ import java.net.SocketAddress;
 public class FinsConnection {
     public static final int HEX_REGISTER = 0;
     public static final int BCD_REGISTER = 1;  //TODO convert to enum
+    
+    private static final int SLEEP_MS = 100;
     
     private String serverAddress;
     private int serverPort;
@@ -110,7 +114,7 @@ public class FinsConnection {
             
             //wait 1 sec
             try {
-                Thread.sleep(1000);
+                Thread.sleep(SLEEP_MS);
             } catch (InterruptedException e) {
                 e.printStackTrace();
                 
@@ -170,6 +174,7 @@ public class FinsConnection {
                 streamToServer = null;
                 streamFromServer = null;
                 serverConnection = null;
+                connected = false;
             }
         }
         
@@ -195,7 +200,7 @@ public class FinsConnection {
             
             //wait 1 sec
             try {
-                Thread.sleep(1000);
+                Thread.sleep(SLEEP_MS);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -237,7 +242,30 @@ public class FinsConnection {
             return true;
         }
         
-        int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, values));
+        int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, values, null));
+        if (response != null) {
+            success = true;
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Writes the values in the argument as binary-coded decimals to the specified register of the connected device.
+     * 
+     * @param memoryArea The register area designation byte
+     * @param registerAddress The address of the register
+     * @param values The values to write (in an array of integers)
+     * @return True if the operation was successful
+     */
+    public boolean writeBcdRegister(int memoryArea, int registerAddress, int[] values) {
+        boolean success = false;
+        
+        if (testing) {
+            return true;
+        }
+        
+        int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, values, ValueType.BCD));
         if (response != null) {
             success = true;
         }
