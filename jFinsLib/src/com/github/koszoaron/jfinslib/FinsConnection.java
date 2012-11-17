@@ -20,6 +20,11 @@ public class FinsConnection {
     
     private static final int SLEEP_MS = 100;
     
+    private static final int TESTING_SLEEP_MS = 500;
+    private static final int TESTING_LONG_SLEEP_MS = 2000;
+    private static final int TESTING_READ_DEFAULT_ANSWER = 42;
+    private static final int TESTING_READ_ERROR = -1;
+    
     private String serverAddress;
     private int serverPort;
     private Socket serverConnection;
@@ -84,6 +89,13 @@ public class FinsConnection {
         boolean success = false;
         
         if (testing) {
+            try {
+                Thread.sleep(TESTING_LONG_SLEEP_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return false;
+            }
+            connected = true;
             return true;
         }
         
@@ -156,6 +168,13 @@ public class FinsConnection {
         boolean success = false;
         
         if (testing) {
+            try {
+                Thread.sleep(TESTING_SLEEP_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return false;
+            }
+            connected = false;
             return true;
         }
         
@@ -239,6 +258,12 @@ public class FinsConnection {
         boolean success = false;
         
         if (testing) {
+            try {
+                Thread.sleep(TESTING_SLEEP_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return false;
+            }
             return true;
         }
         
@@ -262,6 +287,12 @@ public class FinsConnection {
         boolean success = false;
         
         if (testing) {
+            try {
+                Thread.sleep(TESTING_SLEEP_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return false;
+            }
             return true;
         }
         
@@ -284,7 +315,13 @@ public class FinsConnection {
         int res = Constants.UNKNOWN_VALUE;
         
         if (testing) {
-            return 42;
+            try {
+                Thread.sleep(TESTING_LONG_SLEEP_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return TESTING_READ_ERROR;
+            }
+            return TESTING_READ_DEFAULT_ANSWER;
         }
         
         int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, 1));
