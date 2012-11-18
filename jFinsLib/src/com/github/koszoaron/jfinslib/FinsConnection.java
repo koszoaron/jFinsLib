@@ -31,6 +31,7 @@ public class FinsConnection {
     private boolean connected = false;
     private int timeout = 30;
     private boolean testing = false;
+    private int testingDefaultAnswer = TESTING_READ_DEFAULT_ANSWER;
     
     private DataOutputStream streamToServer;
     private InputStream streamFromServer;
@@ -75,9 +76,11 @@ public class FinsConnection {
      * Enables or disables testing mode.
      * 
      * @param testing True to enable
+     * @param defaultAnswer The value to return when requesting a read operation
      */
-    public void setTesting(boolean testing) {
+    public void setTesting(boolean testing, int defaultAnswer) {
         this.testing = testing;
+        this.testingDefaultAnswer = defaultAnswer;
     }
     
     /**
@@ -321,7 +324,7 @@ public class FinsConnection {
                 e.printStackTrace();
                 return TESTING_READ_ERROR;
             }
-            return TESTING_READ_DEFAULT_ANSWER;
+            return testingDefaultAnswer;
         }
         
         int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, 1));

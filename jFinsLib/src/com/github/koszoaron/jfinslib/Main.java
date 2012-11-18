@@ -10,7 +10,7 @@ public class Main {
      */
     public static void main(String[] args) {
         FinsConnection connection = FinsConnection.newInstance("192.168.1.103", 9600);
-        connection.setTesting(true);
+        connection.setTesting(true, 6424);
         
         connection.connect();
     }
