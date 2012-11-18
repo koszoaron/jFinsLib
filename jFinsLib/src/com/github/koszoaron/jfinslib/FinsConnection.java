@@ -20,8 +20,8 @@ public class FinsConnection {
     
     private static final int SLEEP_MS = 100;
     
-    private static final int TESTING_SLEEP_MS = 500;
-    private static final int TESTING_LONG_SLEEP_MS = 2000;
+    private static final int TESTING_SLEEP_MS = 150;
+    private static final int TESTING_LONG_SLEEP_MS = 250;
     private static final int TESTING_READ_DEFAULT_ANSWER = 42;
     private static final int TESTING_READ_ERROR = -1;
     
