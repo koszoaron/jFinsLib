@@ -73,7 +73,19 @@ public class FinsMessage {
      * @param length The number of bytes to be read from the register
      */
     public FinsMessage(int memoryArea, int registerAddress, int length) {
-        this(MessageType.READ_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, length, null, null);
+        this(MessageType.READ_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, 0, length, null, null);
+    }
+    
+    /**
+     * Creates a new FINS message object of the type {@link MessageType#READ_MEMORY}
+     * 
+     * @param memoryArea The memory area designation byte
+     * @param registerAddress The address of the register to read from
+     * @param bits The bits of the register to read
+     * @param length The number of bytes to be read from the register
+     */
+    public FinsMessage(int memoryArea, int registerAddress, int bits, int length) {
+        this(MessageType.READ_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, bits, length, null, null);
     }
     
     /**
@@ -85,7 +97,20 @@ public class FinsMessage {
      * @param valueType The type of values (hex or BCD, if null then hex)
      */
     public FinsMessage(int memoryArea, int registerAddress, int[] values, ValueType valueType) {
-        this(MessageType.WRITE_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, 0, values, valueType);
+        this(MessageType.WRITE_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, 0, 0, values, valueType);
+    }
+    
+    /**
+     * Creates a new FINS message object of the type {@link MessageType#WRITE_MEMORY}
+     * 
+     * @param memoryArea The memory area designation byte
+     * @param registerAddress The address of the register to write to
+     * @param bits The bits of the register to write
+     * @param values The values to write to the register
+     * @param valueType The type of values (hex or BCD, if null then hex)
+     */
+    public FinsMessage(int memoryArea, int registerAddress, int bits, int[] values, ValueType valueType) {
+        this(MessageType.WRITE_MEMORY, Constants.DEFAULT_GCT, Constants.DEFAULT_DNA, Constants.DEFAULT_DA1, Constants.DEFAULT_DA2, Constants.DEFAULT_SNA, Constants.DEFAULT_SA1, Constants.DEFAULT_SA2, Constants.DEFAULT_SID, memoryArea, registerAddress, bits, 0, values, valueType);
     }
     
     /**
@@ -102,11 +127,12 @@ public class FinsMessage {
      * @param sourceId SID byte
      * @param memoryArea The memory are designation byte
      * @param registerAddress The address of the register which is to be accessed
+     * @param bits The bits of the register to access
      * @param length The number of bytes to read (nullable on a write command)
      * @param values The values to write (nullable on a read command)
      * @param valueType The type of the values (hex or BCD, if null then hex, nullable on read) 
      */
-    public FinsMessage(MessageType type, int permissibleNumberOfGateways, int destinationNetworkAddress, int destinationNodeAddress, int destinationUnitAddress, int sourceNetworkAddress, int sourceNodeAddress, int sourceUnitAddress, int sourceId, int memoryArea, int registerAddress, int length, int[] values, ValueType valueType) {
+    public FinsMessage(MessageType type, int permissibleNumberOfGateways, int destinationNetworkAddress, int destinationNodeAddress, int destinationUnitAddress, int sourceNetworkAddress, int sourceNodeAddress, int sourceUnitAddress, int sourceId, int memoryArea, int registerAddress, int bits, int length, int[] values, ValueType valueType) {
         message = FINS_HEADER;
         
         append(FINS_LENGTH_PLACEHOLDER);
@@ -125,25 +151,28 @@ public class FinsMessage {
         if (type == MessageType.READ_MEMORY) {
             append(CMD_MEMORY_AREA_READ);
             append(memoryArea);
-            append(toWord(length));
-            append(RSV);
             append(toWord(registerAddress));
+            append(bits);
+            append(toWord(length));
             
         } else if (type == MessageType.WRITE_MEMORY) {
             append(CMD_MEMORY_AREA_WRITE);
             append(memoryArea);
             append(toWord(registerAddress));
-            append(RSV);
+            append(bits);
             append(toWord(values.length));
             
             //TODO check if bcd and convert
             if (valueType == null || valueType == ValueType.HEX) {
                 append(toWord(values));
             } else {
-                append(toBcdWord(values));
+                if (bits == 0) {
+                    append(toBcdWord(values));
+                } else {
+                    append(values);
+                }
             }
         }
-        
         updateMessageLength();
     }
     

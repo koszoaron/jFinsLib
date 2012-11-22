@@ -307,6 +307,27 @@ public class FinsConnection {
         return success;
     }
     
+    public boolean writeRegisterBits(int memoryArea, int registerAddress, int bits, int[] values) {
+        boolean success = false;
+        
+        if (testing) {
+            try {
+                Thread.sleep(TESTING_SLEEP_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return false;
+            }
+            return true;
+        }
+        
+        int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, bits, values, null));
+        if (response != null) {
+            success = true;
+        }
+        
+        return success;
+    }
+    
     /**
      * Reads the value of a single register of the connected device.
      * 
@@ -331,6 +352,45 @@ public class FinsConnection {
         if (response != null) {
             int upperByte = response[response.length-2];
             int lowerByte = response[response.length-1];
+            
+            if (lowerByte < 0) {
+                lowerByte += 256;
+            }
+            
+            res = upperByte * 256 + lowerByte;
+        }
+        
+        return res;
+    }
+    
+    /**
+     * Reads the value of a single register of the connected device.
+     * 
+     * @param memoryArea The register area designation byte
+     * @param registerAddress The address of the register
+     * @return The value stored in the register or {@code UNKNOWN_VALUE} if the operation was not successful
+     */
+    public int readRegister(int memoryArea, int registerAddress, int bits) {
+        int res = Constants.UNKNOWN_VALUE;
+        
+        if (testing) {
+            try {
+                Thread.sleep(TESTING_LONG_SLEEP_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return TESTING_READ_ERROR;
+            }
+            return testingDefaultAnswer;
+        }
+        
+        int[] response = sendFinsMessage(new FinsMessage(memoryArea, registerAddress, bits, 1));
+        if (response != null) {
+            int upperByte = response[response.length-2];
+            int lowerByte = response[response.length-1];
+            
+            if (lowerByte < 0) {
+                lowerByte += 256;
+            }
             
             res = upperByte * 256 + lowerByte;
         }
