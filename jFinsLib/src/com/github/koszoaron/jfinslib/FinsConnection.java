@@ -14,10 +14,7 @@ import com.github.koszoaron.jfinslib.FinsMessage.ValueType;
  * 
  * @author Aron Koszo <koszoaron@gmail.com>
  */
-public class FinsConnection {
-    public static final int HEX_REGISTER = 0;
-    public static final int BCD_REGISTER = 1;  //TODO convert to enum
-    
+public class FinsConnection {    
     private static final int SLEEP_MS = 100;
     
     private static final int TESTING_SLEEP_MS = 150;
@@ -307,6 +304,15 @@ public class FinsConnection {
         return success;
     }
     
+    /**
+     * Writes the values in the argument to the specified register of the connected device.
+     * 
+     * @param memoryArea The register area designation byte
+     * @param registerAddress The address of the register
+     * @param bits The bits of the register to write
+     * @param values The values to write (in an array of integers)
+     * @return True if the operation was successful
+     */
     public boolean writeRegisterBits(int memoryArea, int registerAddress, int bits, int[] values) {
         boolean success = false;
         
@@ -368,6 +374,7 @@ public class FinsConnection {
      * 
      * @param memoryArea The register area designation byte
      * @param registerAddress The address of the register
+     * @param bits The bits of the register to read
      * @return The value stored in the register or {@code UNKNOWN_VALUE} if the operation was not successful
      */
     public int readRegister(int memoryArea, int registerAddress, int bits) {
